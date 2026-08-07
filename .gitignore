@@ -1,0 +1,10 @@
+# Raw and processed data are too large for git and are documented/linked
+# in data/README.md instead of being committed.
+data/raw/
+data/processed/
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
