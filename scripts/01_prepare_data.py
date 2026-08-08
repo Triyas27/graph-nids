@@ -9,6 +9,11 @@ Fixes applied (see reports/week0_sanity_check.md):
 - Tag every row with its source day (Monday..Friday) for the day-based split.
 - Coerce +/-Inf to NaN (division-by-zero artifacts in rate columns); left as
   NaN for the modeling step to impute using train-only statistics.
+
+The three cleaning steps below are standalone functions (rather than inline
+code) specifically so they can be unit-tested in isolation against small
+synthetic DataFrames — see tests/test_prepare_data.py. They're pure
+DataFrame -> DataFrame transforms with no dependency on the real dataset.
 """
 import glob
 import os
@@ -30,36 +35,63 @@ FILE_TO_DAY = {
     "Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv": "Friday",
 }
 
-frames = []
-for path in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv"))):
-    name = os.path.basename(path)
-    day = FILE_TO_DAY[name]
 
-    df = pd.read_csv(path, encoding="latin1", low_memory=False)
-    df.columns = [c.strip() for c in df.columns]
-
+def drop_blank_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop rows where every column except Label is NaN (CICFlowMeter
+    padding artifact — see the Thursday-Morning-WebAttacks file)."""
     blank_mask = df.drop(columns=["Label"]).isna().all(axis=1)
-    n_blank = int(blank_mask.sum())
-    df = df.loc[~blank_mask].copy()
+    return df.loc[~blank_mask].copy()
 
+
+def fix_label_encoding(df: pd.DataFrame) -> pd.DataFrame:
+    """Replace the mis-encoded Windows-1252 en-dash (\x96) in Web Attack
+    labels with a plain hyphen, and strip stray whitespace."""
+    df = df.copy()
     df["Label"] = df["Label"].str.replace("\x96", "-", regex=False).str.strip()
-    df["Day"] = day
-    df["SourceFile"] = name
+    return df
 
-    print(f"{name}: {len(df):,} real rows (dropped {n_blank:,} blank), day={day}")
-    frames.append(df)
 
-full = pd.concat(frames, ignore_index=True)
+def coerce_inf_to_nan(df: pd.DataFrame) -> pd.DataFrame:
+    """Replace +/-Inf with NaN in numeric columns (division-by-zero
+    artifacts in rate columns like Flow Bytes/s)."""
+    df = df.copy()
+    numeric_cols = df.select_dtypes(include="number").columns
+    df[numeric_cols] = df[numeric_cols].mask(np.isinf(df[numeric_cols]))
+    return df
 
-# +/-Inf -> NaN in numeric columns (Flow Bytes/s, Flow Packets/s division by zero)
-numeric_cols = full.select_dtypes(include="number").columns
-full[numeric_cols] = full[numeric_cols].mask(np.isinf(full[numeric_cols]))
 
-print()
-print(f"Combined: {len(full):,} rows, {full['Label'].nunique()} distinct labels")
-print(full["Day"].value_counts())
-print(full["Label"].value_counts())
+def main():
+    frames = []
+    for path in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv"))):
+        name = os.path.basename(path)
+        day = FILE_TO_DAY[name]
 
-os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
-full.to_parquet(OUT_PATH, index=False)
-print(f"\nWrote {OUT_PATH} ({os.path.getsize(OUT_PATH) / 1e6:.1f} MB)")
+        df = pd.read_csv(path, encoding="latin1", low_memory=False)
+        df.columns = [c.strip() for c in df.columns]
+
+        n_before = len(df)
+        df = drop_blank_rows(df)
+        n_blank = n_before - len(df)
+
+        df = fix_label_encoding(df)
+        df["Day"] = day
+        df["SourceFile"] = name
+
+        print(f"{name}: {len(df):,} real rows (dropped {n_blank:,} blank), day={day}")
+        frames.append(df)
+
+    full = pd.concat(frames, ignore_index=True)
+    full = coerce_inf_to_nan(full)
+
+    print()
+    print(f"Combined: {len(full):,} rows, {full['Label'].nunique()} distinct labels")
+    print(full["Day"].value_counts())
+    print(full["Label"].value_counts())
+
+    os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
+    full.to_parquet(OUT_PATH, index=False)
+    print(f"\nWrote {OUT_PATH} ({os.path.getsize(OUT_PATH) / 1e6:.1f} MB)")
+
+
+if __name__ == "__main__":
+    main()
