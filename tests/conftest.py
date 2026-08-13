@@ -23,3 +23,8 @@ def _load_module(filename):
 @pytest.fixture(scope="session")
 def prepare_data():
     return _load_module("01_prepare_data.py")
+
+
+@pytest.fixture(scope="session")
+def build_hourly_graphs_module():
+    return _load_module("05_build_hourly_graphs.py")
