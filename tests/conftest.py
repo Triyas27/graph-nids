@@ -33,3 +33,13 @@ def build_hourly_graphs_module():
 @pytest.fixture(scope="session")
 def graph_features_module():
     return _load_module("06_compute_graph_features.py")
+
+
+@pytest.fixture(scope="session")
+def enrich_module():
+    return _load_module("07_enrich_with_graph_features.py")
+
+
+@pytest.fixture(scope="session")
+def classifier_graph_module():
+    return _load_module("08_classifier_with_graph_features.py")
