@@ -34,6 +34,7 @@ is rare and easy to memorize instead of generalize from.
 src_/dst_clustering_coefficient are excluded from the feature set below.
 """
 import gc
+import json
 import os
 
 import numpy as np
@@ -44,6 +45,8 @@ from sklearn.metrics import classification_report, f1_score
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "processed", "flows_enriched.parquet")
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "reports", "week2_classifier_with_graph_features.md")
+MODEL_OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "processed", "day_split_graph_model.json")
+MODEL_FEATURES_OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "processed", "day_split_graph_model_features.json")
 
 DROP_COLS = [
     "Flow ID", "Source IP", "Source Port", "Destination IP", "Timestamp",
@@ -190,6 +193,14 @@ def main():
         "Day-based split — flow + graph features", lines,
         compare_f1=f1_day_flow, compare_label="flow-only, same split",
     )
+
+    # Persist this model (the one showing the real F1 gain) for Week 2
+    # Day 6-7's SHAP analysis, so it's explaining the exact fitted model
+    # rather than a freshly retrained (should-be-identical-but-not-verified) one.
+    model_day_all.save_model(MODEL_OUT_PATH)
+    with open(MODEL_FEATURES_OUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(all_feature_cols, f)
+    print(f"Saved model to {MODEL_OUT_PATH}")
 
     # ---- Diagnosis: feature importance on the day-split flow+graph model ----
     importances = model_day_all.get_booster().get_score(importance_type="gain")

@@ -43,3 +43,8 @@ def enrich_module():
 @pytest.fixture(scope="session")
 def classifier_graph_module():
     return _load_module("08_classifier_with_graph_features.py")
+
+
+@pytest.fixture(scope="session")
+def shap_analysis_module():
+    return _load_module("09_shap_analysis.py")
