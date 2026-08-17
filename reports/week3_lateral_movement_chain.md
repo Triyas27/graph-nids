@@ -1,5 +1,7 @@
 # Week 3, Day 1-2 — lateral movement chain
 
+Interactive visualization of this chain (Day 3-4): [week3_lateral_movement_visualization.html](week3_lateral_movement_visualization.html).
+
 **Patient zero**: `192.168.10.8`
 
 **Compromise**: 36 flows labeled `Infiltration`, 2017-07-06 14:19:00 to 2017-07-06 15:45:00, to/from ['205.174.165.73'].
