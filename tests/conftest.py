@@ -48,3 +48,8 @@ def classifier_graph_module():
 @pytest.fixture(scope="session")
 def shap_analysis_module():
     return _load_module("09_shap_analysis.py")
+
+
+@pytest.fixture(scope="session")
+def chain_module():
+    return _load_module("10_extract_lateral_movement_chain.py")
