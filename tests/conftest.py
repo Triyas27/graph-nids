@@ -53,3 +53,13 @@ def shap_analysis_module():
 @pytest.fixture(scope="session")
 def chain_module():
     return _load_module("10_extract_lateral_movement_chain.py")
+
+
+@pytest.fixture(scope="session")
+def mttd_module():
+    return _load_module("11_mttd_analysis.py")
+
+
+@pytest.fixture(scope="session")
+def perflow_novelty_module():
+    return _load_module("14_perflow_novelty_eval.py")
